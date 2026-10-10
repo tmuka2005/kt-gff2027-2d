@@ -16,3 +16,4 @@ gradle.lifecycle.beforeProject {
 }
 
 include(":game")
+include(":native:webgpu")
