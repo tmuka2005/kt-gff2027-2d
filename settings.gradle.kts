@@ -15,6 +15,7 @@ gradle.lifecycle.beforeProject {
   dependencyLocking.lockAllConfigurations()
 }
 
+include(":app")
 include(":game")
 include(":healthcheck")
 include(":native:webgpu")
