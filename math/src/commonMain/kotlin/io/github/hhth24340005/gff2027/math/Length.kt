@@ -240,6 +240,18 @@ public value class HorizontalDistance private constructor(
   ): HorizontalDistance =
     HorizontalDistance(subtractBits(bits, other.bits))
 
+  /** Combines this with [other] into a displacement on the plane. */
+  public operator fun plus(
+    other: VerticalDistance,
+  ): Displacement2 =
+    Displacement2(this, other)
+
+  /** Combines this with the opposite of [other] on the plane. */
+  public operator fun minus(
+    other: VerticalDistance,
+  ): Displacement2 =
+    Displacement2(this, -other)
+
   /** Returns the same distance toward the other side. */
   public operator fun unaryMinus(): HorizontalDistance =
     HorizontalDistance(negateBits(bits))
@@ -404,6 +416,18 @@ public value class VerticalDistance private constructor(
     other: VerticalDistance,
   ): VerticalDistance =
     VerticalDistance(subtractBits(bits, other.bits))
+
+  /** Combines this with [other] into a displacement on the plane. */
+  public operator fun plus(
+    other: HorizontalDistance,
+  ): Displacement2 =
+    Displacement2(other, this)
+
+  /** Combines this with the opposite of [other] on the plane. */
+  public operator fun minus(
+    other: HorizontalDistance,
+  ): Displacement2 =
+    Displacement2(-other, this)
 
   /** Returns the same distance toward the other side. */
   public operator fun unaryMinus(): VerticalDistance =
