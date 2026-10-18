@@ -33,6 +33,19 @@ public expect class Device {
   ): RenderPipeline
 
   /**
+   * Creates a 2D texture of [size], given as width to height, that shaders can
+   * sample and [Queue.writeTexture] can fill. The scope releases it when it
+   * exits.
+   */
+  context(scope: AutoCloseScope)
+  public fun createTexture(
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    size: Pair<Int, Int>,
+    format: TextureFormat,
+    label: String? = null,
+  ): Texture
+
+  /**
    * Creates an encoder that records GPU commands. The scope releases it when
    * it exits.
    */

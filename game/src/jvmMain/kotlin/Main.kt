@@ -1,3 +1,5 @@
+@file:Suppress("MissingPackageDeclaration")
+
 import arrow.fx.coroutines.resourceScope
 import io.github.hhth24340005.gff2027.webgpu.Instance
 import io.github.hhth24340005.gff2027.window.CloseRequests
