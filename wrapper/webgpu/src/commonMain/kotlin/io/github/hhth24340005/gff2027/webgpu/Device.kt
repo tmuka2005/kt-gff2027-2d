@@ -22,7 +22,9 @@ public expect class Device {
   ): ShaderModule
 
   /**
-   * Creates a pipeline that draws triangle lists with one sample per pixel.
+   * Creates a pipeline that draws triangle lists with one sample per pixel. Its
+   * bind group layouts are derived from the shaders, and
+   * [RenderPipeline.getBindGroupLayout] returns them.
    */
   context(scope: AutoCloseScope)
   public fun createRenderPipeline(
@@ -59,6 +61,18 @@ public expect class Device {
     minFilter: FilterMode = FilterMode.Nearest,
     label: String? = null,
   ): Sampler
+
+  /**
+   * Creates a bind group of [entries] that matches [layout]. The scope releases
+   * it when it exits.
+   */
+  context(scope: AutoCloseScope)
+  public fun createBindGroup(
+    layout: BindGroupLayout,
+    entries: List<BindGroupEntry>,
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    label: String? = null,
+  ): BindGroup
 
   /**
    * Creates an encoder that records GPU commands. The scope releases it when
