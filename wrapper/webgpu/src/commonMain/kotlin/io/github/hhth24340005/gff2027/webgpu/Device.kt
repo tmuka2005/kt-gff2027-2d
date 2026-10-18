@@ -35,6 +35,17 @@ public expect class Device {
   ): RenderPipeline
 
   /**
+   * Creates a buffer of [size] bytes that shaders read as uniforms and
+   * [Queue.writeBuffer] can fill. The scope releases it when it exits.
+   */
+  context(scope: AutoCloseScope)
+  public fun createBuffer(
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    size: Int,
+    label: String? = null,
+  ): Buffer
+
+  /**
    * Creates a 2D texture of [size], given as width to height, that shaders can
    * sample and [Queue.writeTexture] can fill. The scope releases it when it
    * exits.
