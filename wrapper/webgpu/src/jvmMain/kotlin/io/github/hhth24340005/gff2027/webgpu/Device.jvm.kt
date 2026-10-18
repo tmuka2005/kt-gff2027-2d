@@ -3,6 +3,7 @@ package io.github.hhth24340005.gff2027.webgpu
 import arrow.AutoCloseScope
 import wgpu_native.WGPUBindGroupDescriptor
 import wgpu_native.WGPUBindGroupEntry
+import wgpu_native.WGPUBufferDescriptor
 import wgpu_native.WGPUChainedStruct
 import wgpu_native.WGPUColorTargetState
 import wgpu_native.WGPUExtent3D
@@ -20,11 +21,14 @@ import wgpu_native.webgpu_h.WGPUMipmapFilterMode_Nearest
 import wgpu_native.webgpu_h.WGPUPrimitiveTopology_TriangleList
 import wgpu_native.webgpu_h.WGPUSType_ShaderSourceWGSL
 import wgpu_native.webgpu_h.WGPUTextureDimension_2D
+import wgpu_native.webgpu_h.WGPU_WHOLE_SIZE
 import wgpu_native.webgpu_h.wgpuBindGroupRelease
+import wgpu_native.webgpu_h.wgpuBufferRelease
 import wgpu_native.webgpu_h.wgpuCommandBufferRelease
 import wgpu_native.webgpu_h.wgpuCommandEncoderFinish
 import wgpu_native.webgpu_h.wgpuCommandEncoderRelease
 import wgpu_native.webgpu_h.wgpuDeviceCreateBindGroup
+import wgpu_native.webgpu_h.wgpuDeviceCreateBuffer
 import wgpu_native.webgpu_h.wgpuDeviceCreateCommandEncoder
 import wgpu_native.webgpu_h.wgpuDeviceCreateRenderPipeline
 import wgpu_native.webgpu_h.wgpuDeviceCreateSampler
@@ -62,6 +66,16 @@ public actual value class Device internal actual constructor(
   ): RenderPipeline =
     createRenderPipelineImpl(vertex, fragment, label).also { pipeline ->
       scope.onClose { pipeline.release() }
+    }
+
+  context(scope: AutoCloseScope)
+  public actual fun createBuffer(
+    @Suppress(names = ["UNUSED_PARAMETER"]) vararg namedOnly: NamedOnly,
+    size: Int,
+    label: String?,
+  ): Buffer =
+    createBufferImpl(size, label).also { buffer ->
+      scope.onClose { buffer.release() }
     }
 
   context(scope: AutoCloseScope)
@@ -160,6 +174,19 @@ private fun Device.createRenderPipelineImpl(
     )
   }
 
+private fun Device.createBufferImpl(
+  size: Int,
+  label: String?,
+): Buffer =
+  Arena.ofConfined().use { arena ->
+    Buffer(
+      wgpuDeviceCreateBuffer(
+        handle,
+        bufferDescriptor(arena, size, label),
+      ),
+    )
+  }
+
 private fun Device.createTextureImpl(
   size: Pair<Int, Int>,
   format: TextureFormat,
@@ -208,6 +235,10 @@ private fun ShaderModule.release() {
 
 private fun RenderPipeline.release() {
   wgpuRenderPipelineRelease(handle)
+}
+
+private fun Buffer.release() {
+  wgpuBufferRelease(handle)
 }
 
 private fun Sampler.release() {
@@ -311,6 +342,23 @@ private fun colorTargetStates(
   return states
 }
 
+private fun bufferDescriptor(
+  arena: Arena,
+  size: Int,
+  label: String?,
+): MemorySegment {
+  val descriptor = WGPUBufferDescriptor.allocate(arena)
+  if (label != null) {
+    WGPUBufferDescriptor.label(descriptor).setStringView(arena, label)
+  }
+  WGPUBufferDescriptor.usage(
+    descriptor,
+    BUFFER_USAGE_COPY_DST or BUFFER_USAGE_UNIFORM,
+  )
+  WGPUBufferDescriptor.size(descriptor, size.toLong())
+  return descriptor
+}
+
 private fun textureDescriptor(
   arena: Arena,
   size: Pair<Int, Int>,
@@ -386,6 +434,7 @@ private fun bindGroupEntries(
     val struct = WGPUBindGroupEntry.asSlice(structs, index.toLong())
     WGPUBindGroupEntry.binding(struct, entry.binding)
     when (val resource = entry.resource) {
+      is Buffer -> struct.setWholeBuffer(resource)
       is Sampler -> WGPUBindGroupEntry.sampler(struct, resource.handle)
       is TextureView -> WGPUBindGroupEntry.textureView(struct, resource.handle)
     }
@@ -393,8 +442,19 @@ private fun bindGroupEntries(
   return structs
 }
 
+private fun MemorySegment.setWholeBuffer(
+  buffer: Buffer,
+) {
+  WGPUBindGroupEntry.buffer(this, buffer.handle)
+  WGPUBindGroupEntry.size(this, WGPU_WHOLE_SIZE())
+}
+
 // jextract skips it, as webgpu.h declares it as static const
 private const val COLOR_WRITE_MASK_ALL = 0xFL
+
+// jextract skips them, as webgpu.h declares them as static const
+private const val BUFFER_USAGE_COPY_DST = 0x8L
+private const val BUFFER_USAGE_UNIFORM = 0x40L
 
 // jextract skips them, as webgpu.h declares them as static const
 private const val TEXTURE_USAGE_COPY_DST = 0x2L

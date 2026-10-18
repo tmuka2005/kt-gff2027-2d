@@ -5,6 +5,7 @@ import wgpu_native.WGPUTexelCopyBufferLayout
 import wgpu_native.WGPUTexelCopyTextureInfo
 import wgpu_native.webgpu_h.WGPUTextureAspect_All
 import wgpu_native.webgpu_h.WGPU_COPY_STRIDE_UNDEFINED
+import wgpu_native.webgpu_h.wgpuQueueWriteBuffer
 import wgpu_native.webgpu_h.wgpuQueueWriteTexture
 import wgpu_native.webgpu_h.wgpuTextureGetHeight
 import wgpu_native.webgpu_h.wgpuTextureGetWidth
@@ -15,6 +16,13 @@ import java.lang.foreign.MemorySegment
 public actual value class Queue internal actual constructor(
   internal actual val handle: WebGpuNativeHandle,
 ) {
+  public actual fun writeBuffer(
+    buffer: Buffer,
+    data: FloatArray,
+  ) {
+    writeBufferImpl(buffer, data)
+  }
+
   public actual fun writeTexture(
     texture: Texture,
     data: IntArray,
@@ -26,6 +34,22 @@ public actual value class Queue internal actual constructor(
 }
 
 // region internal
+
+private fun Queue.writeBufferImpl(
+  buffer: Buffer,
+  data: FloatArray,
+) {
+  Arena.ofConfined().use { arena ->
+    val source = MemorySegment.ofArray(data)
+    wgpuQueueWriteBuffer(
+      handle,
+      buffer.handle,
+      0L,
+      arena.allocate(source.byteSize()).copyFrom(source),
+      source.byteSize(),
+    )
+  }
+}
 
 private fun Queue.writeTextureImpl(
   texture: Texture,

@@ -10,6 +10,12 @@ import kotlin.jvm.JvmInline
 public expect value class Queue internal constructor(
   internal val handle: WebGpuNativeHandle,
 ) {
+  /** Copies [data] into [buffer] from its start. */
+  public fun writeBuffer(
+    buffer: Buffer,
+    data: FloatArray,
+  )
+
   /**
    * Copies [data] into the whole [texture], whose rows each start
    * [elementsPerRow] elements after the previous one, top row first. Each
