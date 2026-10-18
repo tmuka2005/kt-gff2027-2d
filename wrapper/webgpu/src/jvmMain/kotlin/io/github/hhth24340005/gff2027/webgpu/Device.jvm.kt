@@ -1,6 +1,8 @@
 package io.github.hhth24340005.gff2027.webgpu
 
 import arrow.AutoCloseScope
+import wgpu_native.WGPUBindGroupDescriptor
+import wgpu_native.WGPUBindGroupEntry
 import wgpu_native.WGPUChainedStruct
 import wgpu_native.WGPUColorTargetState
 import wgpu_native.WGPUExtent3D
@@ -18,9 +20,11 @@ import wgpu_native.webgpu_h.WGPUMipmapFilterMode_Nearest
 import wgpu_native.webgpu_h.WGPUPrimitiveTopology_TriangleList
 import wgpu_native.webgpu_h.WGPUSType_ShaderSourceWGSL
 import wgpu_native.webgpu_h.WGPUTextureDimension_2D
+import wgpu_native.webgpu_h.wgpuBindGroupRelease
 import wgpu_native.webgpu_h.wgpuCommandBufferRelease
 import wgpu_native.webgpu_h.wgpuCommandEncoderFinish
 import wgpu_native.webgpu_h.wgpuCommandEncoderRelease
+import wgpu_native.webgpu_h.wgpuDeviceCreateBindGroup
 import wgpu_native.webgpu_h.wgpuDeviceCreateCommandEncoder
 import wgpu_native.webgpu_h.wgpuDeviceCreateRenderPipeline
 import wgpu_native.webgpu_h.wgpuDeviceCreateSampler
@@ -80,6 +84,17 @@ public actual value class Device internal actual constructor(
   ): Sampler =
     createSamplerImpl(magFilter, minFilter, label).also { sampler ->
       scope.onClose { sampler.release() }
+    }
+
+  context(scope: AutoCloseScope)
+  public actual fun createBindGroup(
+    layout: BindGroupLayout,
+    entries: List<BindGroupEntry>,
+    @Suppress(names = ["UNUSED_PARAMETER"]) vararg namedOnly: NamedOnly,
+    label: String?,
+  ): BindGroup =
+    createBindGroupImpl(layout, entries, label).also { group ->
+      scope.onClose { group.release() }
     }
 
   public actual inline fun submitCommands(
@@ -173,6 +188,20 @@ private fun Device.createSamplerImpl(
     )
   }
 
+private fun Device.createBindGroupImpl(
+  layout: BindGroupLayout,
+  entries: List<BindGroupEntry>,
+  label: String?,
+): BindGroup =
+  Arena.ofConfined().use { arena ->
+    BindGroup(
+      wgpuDeviceCreateBindGroup(
+        handle,
+        bindGroupDescriptor(arena, layout, entries, label),
+      ),
+    )
+  }
+
 private fun ShaderModule.release() {
   wgpuShaderModuleRelease(handle)
 }
@@ -183,6 +212,10 @@ private fun RenderPipeline.release() {
 
 private fun Sampler.release() {
   wgpuSamplerRelease(handle)
+}
+
+private fun BindGroup.release() {
+  wgpuBindGroupRelease(handle)
 }
 
 private fun shaderModuleDescriptor(
@@ -325,6 +358,39 @@ private fun samplerDescriptor(
   WGPUSamplerDescriptor.lodMaxClamp(descriptor, LOD_MAX_CLAMP)
   WGPUSamplerDescriptor.maxAnisotropy(descriptor, 1)
   return descriptor
+}
+
+private fun bindGroupDescriptor(
+  arena: Arena,
+  layout: BindGroupLayout,
+  entries: List<BindGroupEntry>,
+  label: String?,
+): MemorySegment {
+  val descriptor = WGPUBindGroupDescriptor.allocate(arena)
+  if (label != null) {
+    WGPUBindGroupDescriptor.label(descriptor).setStringView(arena, label)
+  }
+  WGPUBindGroupDescriptor.layout(descriptor, layout.handle)
+  WGPUBindGroupDescriptor.entryCount(descriptor, entries.size.toLong())
+  WGPUBindGroupDescriptor.entries(descriptor, bindGroupEntries(arena, entries))
+  return descriptor
+}
+
+private fun bindGroupEntries(
+  arena: Arena,
+  entries: List<BindGroupEntry>,
+): MemorySegment {
+  val structs =
+    WGPUBindGroupEntry.allocateArray(entries.size.toLong(), arena)
+  entries.forEachIndexed { index, entry ->
+    val struct = WGPUBindGroupEntry.asSlice(structs, index.toLong())
+    WGPUBindGroupEntry.binding(struct, entry.binding)
+    when (val resource = entry.resource) {
+      is Sampler -> WGPUBindGroupEntry.sampler(struct, resource.handle)
+      is TextureView -> WGPUBindGroupEntry.textureView(struct, resource.handle)
+    }
+  }
+  return structs
 }
 
 // jextract skips it, as webgpu.h declares it as static const

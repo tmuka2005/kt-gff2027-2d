@@ -16,6 +16,16 @@ public expect value class RenderPassEncoder internal constructor(
   )
 
   /**
+   * Uses [group] as bind group [index] for the following draws. See the WebGPU
+   * spec:
+   * https://www.w3.org/TR/webgpu/#dom-gpubindingcommandsmixin-setbindgroup
+   */
+  public fun setBindGroup(
+    index: Int,
+    group: BindGroup,
+  )
+
+  /**
    * Draws primitives with the current pipeline. See the WebGPU spec:
    * https://www.w3.org/TR/webgpu/#dom-gpurendercommandsmixin-draw
    */

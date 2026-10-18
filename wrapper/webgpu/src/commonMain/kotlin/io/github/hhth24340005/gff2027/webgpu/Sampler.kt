@@ -9,7 +9,7 @@ import kotlin.jvm.JvmInline
 @JvmInline
 public expect value class Sampler internal constructor(
   internal val handle: WebGpuNativeHandle,
-)
+) : BindingResource
 
 /** How a [Sampler] picks colors between texels. */
 public enum class FilterMode {

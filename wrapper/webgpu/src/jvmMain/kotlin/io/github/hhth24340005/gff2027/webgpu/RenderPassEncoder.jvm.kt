@@ -3,7 +3,9 @@ package io.github.hhth24340005.gff2027.webgpu
 import wgpu_native.webgpu_h.wgpuRenderPassEncoderDraw
 import wgpu_native.webgpu_h.wgpuRenderPassEncoderEnd
 import wgpu_native.webgpu_h.wgpuRenderPassEncoderRelease
+import wgpu_native.webgpu_h.wgpuRenderPassEncoderSetBindGroup
 import wgpu_native.webgpu_h.wgpuRenderPassEncoderSetPipeline
+import java.lang.foreign.MemorySegment.NULL
 
 @JvmInline
 public actual value class RenderPassEncoder internal actual constructor(
@@ -13,6 +15,13 @@ public actual value class RenderPassEncoder internal actual constructor(
     pipeline: RenderPipeline,
   ) {
     setPipelineImpl(pipeline)
+  }
+
+  public actual fun setBindGroup(
+    index: Int,
+    group: BindGroup,
+  ) {
+    setBindGroupImpl(index, group)
   }
 
   public actual fun draw(
@@ -53,6 +62,13 @@ private fun RenderPassEncoder.drawImpl(
     firstVertex,
     firstInstance,
   )
+}
+
+private fun RenderPassEncoder.setBindGroupImpl(
+  index: Int,
+  group: BindGroup,
+) {
+  wgpuRenderPassEncoderSetBindGroup(handle, index, group.handle, 0L, NULL)
 }
 
 // endregion
