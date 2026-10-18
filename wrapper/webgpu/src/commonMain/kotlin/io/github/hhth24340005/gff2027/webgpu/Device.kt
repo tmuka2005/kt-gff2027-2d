@@ -46,6 +46,21 @@ public expect class Device {
   ): Texture
 
   /**
+   * Creates a sampler that clamps coordinates outside a texture to its edge.
+   * The scope releases it when it exits.
+   *
+   * @param magFilter the filter where a texel covers more than a pixel.
+   * @param minFilter the filter where a texel covers less than a pixel.
+   */
+  context(scope: AutoCloseScope)
+  public fun createSampler(
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    magFilter: FilterMode = FilterMode.Nearest,
+    minFilter: FilterMode = FilterMode.Nearest,
+    label: String? = null,
+  ): Sampler
+
+  /**
    * Creates an encoder that records GPU commands. The scope releases it when
    * it exits.
    */
