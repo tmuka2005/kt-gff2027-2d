@@ -2,10 +2,13 @@ package io.github.hhth24340005.gff2027.webgpu
 
 import wgpu_native.webgpu_h.wgpuRenderPassEncoderDraw
 import wgpu_native.webgpu_h.wgpuRenderPassEncoderEnd
+import wgpu_native.webgpu_h.wgpuRenderPassEncoderExecuteBundles
 import wgpu_native.webgpu_h.wgpuRenderPassEncoderRelease
 import wgpu_native.webgpu_h.wgpuRenderPassEncoderSetBindGroup
 import wgpu_native.webgpu_h.wgpuRenderPassEncoderSetPipeline
+import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment.NULL
+import java.lang.foreign.ValueLayout.ADDRESS
 
 @JvmInline
 public actual value class RenderPassEncoder internal actual constructor(
@@ -22,6 +25,12 @@ public actual value class RenderPassEncoder internal actual constructor(
     group: BindGroup,
   ) {
     setBindGroupImpl(index, group)
+  }
+
+  public actual fun executeBundles(
+    bundles: List<RenderBundle>,
+  ) {
+    executeBundlesImpl(bundles)
   }
 
   public actual fun draw(
@@ -69,6 +78,18 @@ private fun RenderPassEncoder.setBindGroupImpl(
   group: BindGroup,
 ) {
   wgpuRenderPassEncoderSetBindGroup(handle, index, group.handle, 0L, NULL)
+}
+
+private fun RenderPassEncoder.executeBundlesImpl(
+  bundles: List<RenderBundle>,
+) {
+  Arena.ofConfined().use { arena ->
+    val handles = arena.allocate(ADDRESS, bundles.size.toLong())
+    bundles.forEachIndexed { index, bundle ->
+      handles.setAtIndex(ADDRESS, index.toLong(), bundle.handle)
+    }
+    wgpuRenderPassEncoderExecuteBundles(handle, bundles.size.toLong(), handles)
+  }
 }
 
 // endregion

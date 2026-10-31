@@ -23,15 +23,39 @@ public expect value class Device internal constructor(
   ): ShaderModule
 
   /**
-   * Creates a pipeline that draws triangle lists with one sample per pixel. Its
-   * bind group layouts are derived from the shaders, and
-   * [RenderPipeline.getBindGroupLayout] returns them.
+   * Creates a layout of [entries] for bind groups. The scope releases it when
+   * it exits.
+   */
+  context(scope: AutoCloseScope)
+  public fun createBindGroupLayout(
+    entries: List<BindGroupLayoutEntry>,
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    label: String? = null,
+  ): BindGroupLayout
+
+  /**
+   * Creates a pipeline layout whose bind group `i` follows
+   * `bindGroupLayouts[i]`. The scope releases it when it exits.
+   */
+  context(scope: AutoCloseScope)
+  public fun createPipelineLayout(
+    bindGroupLayouts: List<BindGroupLayout>,
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    label: String? = null,
+  ): PipelineLayout
+
+  /**
+   * Creates a pipeline that draws triangle lists with one sample per pixel and
+   * binds resources as [layout] declares. The scope releases it when it exits.
+   * [PipelineLayout.Auto] derives the layout from the shaders, and
+   * [RenderPipeline.getBindGroupLayout] returns its bind group layouts.
    */
   context(scope: AutoCloseScope)
   public fun createRenderPipeline(
     vertex: VertexState,
     fragment: FragmentState,
     @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    layout: PipelineLayout = PipelineLayout.Auto,
     label: String? = null,
   ): RenderPipeline
 
@@ -94,6 +118,18 @@ public expect value class Device internal constructor(
   public inline fun submitCommands(
     block: CommandEncoder.() -> Unit,
   )
+
+  /**
+   * Creates an encoder that records draws into a [RenderBundle] for render
+   * passes whose color attachments have [colorFormats] in order and one sample
+   * per pixel. The scope releases it when it exits.
+   */
+  context(scope: AutoCloseScope)
+  public fun createRenderBundleEncoder(
+    colorFormats: List<TextureFormat>,
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    label: String? = null,
+  ): RenderBundleEncoder
 }
 
 // region internal

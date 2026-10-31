@@ -3,24 +3,33 @@ package io.github.hhth24340005.gff2027.webgpu
 import arrow.AutoCloseScope
 import wgpu_native.WGPUBindGroupDescriptor
 import wgpu_native.WGPUBindGroupEntry
+import wgpu_native.WGPUBindGroupLayoutDescriptor
+import wgpu_native.WGPUBindGroupLayoutEntry
 import wgpu_native.WGPUBufferDescriptor
 import wgpu_native.WGPUChainedStruct
 import wgpu_native.WGPUColorTargetState
 import wgpu_native.WGPUExtent3D
 import wgpu_native.WGPUFragmentState
 import wgpu_native.WGPUMultisampleState
+import wgpu_native.WGPUPipelineLayoutDescriptor
 import wgpu_native.WGPUPrimitiveState
+import wgpu_native.WGPURenderBundleEncoderDescriptor
 import wgpu_native.WGPURenderPipelineDescriptor
+import wgpu_native.WGPUSamplerBindingLayout
 import wgpu_native.WGPUSamplerDescriptor
 import wgpu_native.WGPUShaderModuleDescriptor
 import wgpu_native.WGPUShaderSourceWGSL
+import wgpu_native.WGPUTextureBindingLayout
 import wgpu_native.WGPUTextureDescriptor
 import wgpu_native.WGPUVertexState
 import wgpu_native.webgpu_h.WGPUAddressMode_ClampToEdge
 import wgpu_native.webgpu_h.WGPUMipmapFilterMode_Nearest
 import wgpu_native.webgpu_h.WGPUPrimitiveTopology_TriangleList
 import wgpu_native.webgpu_h.WGPUSType_ShaderSourceWGSL
+import wgpu_native.webgpu_h.WGPUSamplerBindingType_Filtering
 import wgpu_native.webgpu_h.WGPUTextureDimension_2D
+import wgpu_native.webgpu_h.WGPUTextureSampleType_Float
+import wgpu_native.webgpu_h.WGPUTextureViewDimension_2D
 import wgpu_native.webgpu_h.WGPU_WHOLE_SIZE
 import wgpu_native.webgpu_h.wgpuBindGroupRelease
 import wgpu_native.webgpu_h.wgpuBufferRelease
@@ -28,13 +37,18 @@ import wgpu_native.webgpu_h.wgpuCommandBufferRelease
 import wgpu_native.webgpu_h.wgpuCommandEncoderFinish
 import wgpu_native.webgpu_h.wgpuCommandEncoderRelease
 import wgpu_native.webgpu_h.wgpuDeviceCreateBindGroup
+import wgpu_native.webgpu_h.wgpuDeviceCreateBindGroupLayout
 import wgpu_native.webgpu_h.wgpuDeviceCreateBuffer
 import wgpu_native.webgpu_h.wgpuDeviceCreateCommandEncoder
+import wgpu_native.webgpu_h.wgpuDeviceCreatePipelineLayout
+import wgpu_native.webgpu_h.wgpuDeviceCreateRenderBundleEncoder
 import wgpu_native.webgpu_h.wgpuDeviceCreateRenderPipeline
 import wgpu_native.webgpu_h.wgpuDeviceCreateSampler
 import wgpu_native.webgpu_h.wgpuDeviceCreateShaderModule
 import wgpu_native.webgpu_h.wgpuDeviceCreateTexture
+import wgpu_native.webgpu_h.wgpuPipelineLayoutRelease
 import wgpu_native.webgpu_h.wgpuQueueSubmit
+import wgpu_native.webgpu_h.wgpuRenderBundleEncoderRelease
 import wgpu_native.webgpu_h.wgpuRenderPipelineRelease
 import wgpu_native.webgpu_h.wgpuSamplerRelease
 import wgpu_native.webgpu_h.wgpuShaderModuleRelease
@@ -42,6 +56,7 @@ import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.MemorySegment.NULL
 import java.lang.foreign.ValueLayout.ADDRESS
+import java.lang.foreign.ValueLayout.JAVA_INT
 
 public actual value class Device internal actual constructor(
   internal actual val handle: WebGpuNativeHandle,
@@ -58,15 +73,35 @@ public actual value class Device internal actual constructor(
     }
 
   context(scope: AutoCloseScope)
+  public actual fun createBindGroupLayout(
+    entries: List<BindGroupLayoutEntry>,
+    @Suppress(names = ["UNUSED_PARAMETER"]) vararg namedOnly: NamedOnly,
+    label: String?,
+  ): BindGroupLayout =
+    createBindGroupLayoutImpl(entries, label).also { layout ->
+      scope.onClose { layout.release() }
+    }
+
+  context(scope: AutoCloseScope)
+  public actual fun createPipelineLayout(
+    bindGroupLayouts: List<BindGroupLayout>,
+    @Suppress(names = ["UNUSED_PARAMETER"]) vararg namedOnly: NamedOnly,
+    label: String?,
+  ): PipelineLayout =
+    createPipelineLayoutImpl(bindGroupLayouts, label).also { layout ->
+      scope.onClose { layout.release() }
+    }
+
+  context(scope: AutoCloseScope)
   public actual fun createRenderPipeline(
     vertex: VertexState,
     fragment: FragmentState,
     @Suppress(names = ["UNUSED_PARAMETER"]) vararg namedOnly: NamedOnly,
+    layout: PipelineLayout,
     label: String?,
   ): RenderPipeline =
-    createRenderPipelineImpl(vertex, fragment, label).also { pipeline ->
-      scope.onClose { pipeline.release() }
-    }
+    createRenderPipelineImpl(layout, vertex, fragment, label)
+      .also { pipeline -> scope.onClose { pipeline.release() } }
 
   context(scope: AutoCloseScope)
   public actual fun createBuffer(
@@ -117,6 +152,16 @@ public actual value class Device internal actual constructor(
   ) {
     submitCommandsImpl(block)
   }
+
+  context(scope: AutoCloseScope)
+  public actual fun createRenderBundleEncoder(
+    colorFormats: List<TextureFormat>,
+    @Suppress(names = ["UNUSED_PARAMETER"]) vararg namedOnly: NamedOnly,
+    label: String?,
+  ): RenderBundleEncoder =
+    createRenderBundleEncoderImpl(colorFormats, label).also { encoder ->
+      scope.onClose { encoder.release() }
+    }
 }
 
 // region internal
@@ -161,7 +206,34 @@ private fun Device.createShaderModuleImpl(
     )
   }
 
+private fun Device.createBindGroupLayoutImpl(
+  entries: List<BindGroupLayoutEntry>,
+  label: String?,
+): BindGroupLayout =
+  Arena.ofConfined().use { arena ->
+    BindGroupLayout(
+      wgpuDeviceCreateBindGroupLayout(
+        handle,
+        bindGroupLayoutDescriptor(arena, entries, label),
+      ),
+    )
+  }
+
+private fun Device.createPipelineLayoutImpl(
+  bindGroupLayouts: List<BindGroupLayout>,
+  label: String?,
+): PipelineLayout =
+  Arena.ofConfined().use { arena ->
+    PipelineLayout(
+      wgpuDeviceCreatePipelineLayout(
+        handle,
+        pipelineLayoutDescriptor(arena, bindGroupLayouts, label),
+      ),
+    )
+  }
+
 private fun Device.createRenderPipelineImpl(
+  layout: PipelineLayout,
   vertex: VertexState,
   fragment: FragmentState,
   label: String?,
@@ -170,7 +242,7 @@ private fun Device.createRenderPipelineImpl(
     RenderPipeline(
       wgpuDeviceCreateRenderPipeline(
         handle,
-        renderPipelineDescriptor(arena, vertex, fragment, label),
+        renderPipelineDescriptor(arena, layout, vertex, fragment, label),
       ),
     )
   }
@@ -231,8 +303,25 @@ private fun Device.createBindGroupImpl(
     )
   }
 
+private fun Device.createRenderBundleEncoderImpl(
+  colorFormats: List<TextureFormat>,
+  label: String?,
+): RenderBundleEncoder =
+  Arena.ofConfined().use { arena ->
+    RenderBundleEncoder(
+      wgpuDeviceCreateRenderBundleEncoder(
+        handle,
+        renderBundleEncoderDescriptor(arena, colorFormats, label),
+      ),
+    )
+  }
+
 private fun ShaderModule.release() {
   wgpuShaderModuleRelease(handle)
+}
+
+private fun PipelineLayout.release() {
+  wgpuPipelineLayoutRelease(handle)
 }
 
 private fun RenderPipeline.release() {
@@ -249,6 +338,10 @@ private fun Sampler.release() {
 
 private fun BindGroup.release() {
   wgpuBindGroupRelease(handle)
+}
+
+private fun RenderBundleEncoder.release() {
+  wgpuRenderBundleEncoderRelease(handle)
 }
 
 private fun shaderModuleDescriptor(
@@ -277,8 +370,75 @@ private fun wgslSource(
   return source
 }
 
+private fun bindGroupLayoutDescriptor(
+  arena: Arena,
+  entries: List<BindGroupLayoutEntry>,
+  label: String?,
+): MemorySegment {
+  val descriptor = WGPUBindGroupLayoutDescriptor.allocate(arena)
+  if (label != null) {
+    WGPUBindGroupLayoutDescriptor.label(descriptor).setStringView(arena, label)
+  }
+  WGPUBindGroupLayoutDescriptor.entryCount(descriptor, entries.size.toLong())
+  WGPUBindGroupLayoutDescriptor
+    .entries(descriptor, bindGroupLayoutEntries(arena, entries))
+  return descriptor
+}
+
+// Zeroed fields leave the other binding types as BindingNotUsed
+private fun bindGroupLayoutEntries(
+  arena: Arena,
+  entries: List<BindGroupLayoutEntry>,
+): MemorySegment {
+  val structs =
+    WGPUBindGroupLayoutEntry.allocateArray(entries.size.toLong(), arena)
+  entries.forEachIndexed { index, entry ->
+    val struct = WGPUBindGroupLayoutEntry.asSlice(structs, index.toLong())
+    WGPUBindGroupLayoutEntry.binding(struct, entry.binding)
+    WGPUBindGroupLayoutEntry
+      .visibility(struct, SHADER_STAGE_VERTEX or SHADER_STAGE_FRAGMENT)
+    when (entry.type) {
+      BindingType.Texture -> {
+        val texture = WGPUBindGroupLayoutEntry.texture(struct)
+        WGPUTextureBindingLayout
+          .sampleType(texture, WGPUTextureSampleType_Float())
+        WGPUTextureBindingLayout
+          .viewDimension(texture, WGPUTextureViewDimension_2D())
+      }
+
+      BindingType.Sampler -> {
+        WGPUSamplerBindingLayout.type(
+          WGPUBindGroupLayoutEntry.sampler(struct),
+          WGPUSamplerBindingType_Filtering(),
+        )
+      }
+    }
+  }
+  return structs
+}
+
+private fun pipelineLayoutDescriptor(
+  arena: Arena,
+  bindGroupLayouts: List<BindGroupLayout>,
+  label: String?,
+): MemorySegment {
+  val descriptor = WGPUPipelineLayoutDescriptor.allocate(arena)
+  if (label != null) {
+    WGPUPipelineLayoutDescriptor.label(descriptor).setStringView(arena, label)
+  }
+  val handles = arena.allocate(ADDRESS, bindGroupLayouts.size.toLong())
+  bindGroupLayouts.forEachIndexed { index, layout ->
+    handles.setAtIndex(ADDRESS, index.toLong(), layout.handle)
+  }
+  WGPUPipelineLayoutDescriptor
+    .bindGroupLayoutCount(descriptor, bindGroupLayouts.size.toLong())
+  WGPUPipelineLayoutDescriptor.bindGroupLayouts(descriptor, handles)
+  return descriptor
+}
+
 private fun renderPipelineDescriptor(
   arena: Arena,
+  layout: PipelineLayout,
   vertex: VertexState,
   fragment: FragmentState,
   label: String?,
@@ -287,6 +447,7 @@ private fun renderPipelineDescriptor(
   if (label != null) {
     WGPURenderPipelineDescriptor.label(descriptor).setStringView(arena, label)
   }
+  WGPURenderPipelineDescriptor.layout(descriptor, layout.handle)
   WGPURenderPipelineDescriptor.vertex(descriptor).setVertexState(arena, vertex)
   WGPUPrimitiveState.topology(
     WGPURenderPipelineDescriptor.primitive(descriptor),
@@ -350,6 +511,28 @@ private fun colorTargetStates(
     WGPUColorTargetState.writeMask(state, COLOR_WRITE_MASK_ALL)
   }
   return states
+}
+
+private fun renderBundleEncoderDescriptor(
+  arena: Arena,
+  colorFormats: List<TextureFormat>,
+  label: String?,
+): MemorySegment {
+  val descriptor = WGPURenderBundleEncoderDescriptor.allocate(arena)
+  if (label != null) {
+    WGPURenderBundleEncoderDescriptor
+      .label(descriptor)
+      .setStringView(arena, label)
+  }
+  val formats = arena.allocate(JAVA_INT, colorFormats.size.toLong())
+  colorFormats.forEachIndexed { index, format ->
+    formats.setAtIndex(JAVA_INT, index.toLong(), format.native)
+  }
+  WGPURenderBundleEncoderDescriptor
+    .colorFormatCount(descriptor, colorFormats.size.toLong())
+  WGPURenderBundleEncoderDescriptor.colorFormats(descriptor, formats)
+  WGPURenderBundleEncoderDescriptor.sampleCount(descriptor, 1)
+  return descriptor
 }
 
 private fun bufferDescriptor(
@@ -469,6 +652,10 @@ private val BufferUsage.native: Long
       BufferUsage.CopyDst -> BUFFER_USAGE_COPY_DST
       BufferUsage.Uniform -> BUFFER_USAGE_UNIFORM
     }
+
+// jextract skips them, as webgpu.h declares them as static const
+private const val SHADER_STAGE_VERTEX = 0x1L
+private const val SHADER_STAGE_FRAGMENT = 0x2L
 
 // jextract skips them, as webgpu.h declares them as static const
 private const val BUFFER_USAGE_COPY_DST = 0x8L

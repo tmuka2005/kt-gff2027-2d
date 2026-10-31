@@ -26,6 +26,14 @@ public expect value class RenderPassEncoder internal constructor(
   )
 
   /**
+   * Replays [bundles] in order. See the WebGPU spec:
+   * https://www.w3.org/TR/webgpu/#dom-gpurenderpassencoder-executebundles
+   */
+  public fun executeBundles(
+    bundles: List<RenderBundle>,
+  )
+
+  /**
    * Draws primitives with the current pipeline. See the WebGPU spec:
    * https://www.w3.org/TR/webgpu/#dom-gpurendercommandsmixin-draw
    */
