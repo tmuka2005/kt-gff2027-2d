@@ -5,6 +5,7 @@ import wgpu_native.WGPUBindGroupDescriptor
 import wgpu_native.WGPUBindGroupEntry
 import wgpu_native.WGPUBindGroupLayoutDescriptor
 import wgpu_native.WGPUBindGroupLayoutEntry
+import wgpu_native.WGPUBufferBindingLayout
 import wgpu_native.WGPUBufferDescriptor
 import wgpu_native.WGPUChainedStruct
 import wgpu_native.WGPUColorTargetState
@@ -23,6 +24,7 @@ import wgpu_native.WGPUTextureBindingLayout
 import wgpu_native.WGPUTextureDescriptor
 import wgpu_native.WGPUVertexState
 import wgpu_native.webgpu_h.WGPUAddressMode_ClampToEdge
+import wgpu_native.webgpu_h.WGPUBufferBindingType_ReadOnlyStorage
 import wgpu_native.webgpu_h.WGPUMipmapFilterMode_Nearest
 import wgpu_native.webgpu_h.WGPUPrimitiveTopology_TriangleList
 import wgpu_native.webgpu_h.WGPUSType_ShaderSourceWGSL
@@ -412,6 +414,13 @@ private fun bindGroupLayoutEntries(
           WGPUSamplerBindingType_Filtering(),
         )
       }
+
+      BindingType.ReadOnlyStorage -> {
+        WGPUBufferBindingLayout.type(
+          WGPUBindGroupLayoutEntry.buffer(struct),
+          WGPUBufferBindingType_ReadOnlyStorage(),
+        )
+      }
     }
   }
   return structs
@@ -628,38 +637,55 @@ private fun bindGroupEntries(
     val struct = WGPUBindGroupEntry.asSlice(structs, index.toLong())
     WGPUBindGroupEntry.binding(struct, entry.binding)
     when (val resource = entry.resource) {
-      is Buffer -> struct.setWholeBuffer(resource)
-      is Sampler -> WGPUBindGroupEntry.sampler(struct, resource.handle)
-      is TextureView -> WGPUBindGroupEntry.textureView(struct, resource.handle)
+      is Buffer -> {
+        struct.setBuffer(resource, WGPU_WHOLE_SIZE())
+      }
+
+      is BufferBinding -> {
+        struct.setBuffer(resource.buffer, resource.size.toLong())
+      }
+
+      is Sampler -> {
+        WGPUBindGroupEntry.sampler(struct, resource.handle)
+      }
+
+      is TextureView -> {
+        WGPUBindGroupEntry.textureView(struct, resource.handle)
+      }
     }
   }
   return structs
 }
 
-private fun MemorySegment.setWholeBuffer(
+private fun MemorySegment.setBuffer(
   buffer: Buffer,
+  size: Long,
 ) {
   WGPUBindGroupEntry.buffer(this, buffer.handle)
-  WGPUBindGroupEntry.size(this, WGPU_WHOLE_SIZE())
+  WGPUBindGroupEntry.size(this, size)
 }
 
 // jextract skips it, as webgpu.h declares it as static const
 private const val COLOR_WRITE_MASK_ALL = 0xFL
+
+// jextract skips them, as webgpu.h declares them as static const
+private const val SHADER_STAGE_VERTEX = 0x1L
+private const val SHADER_STAGE_FRAGMENT = 0x2L
 
 private val BufferUsage.native: Long
   get() =
     when (this) {
       BufferUsage.CopyDst -> BUFFER_USAGE_COPY_DST
       BufferUsage.Uniform -> BUFFER_USAGE_UNIFORM
+      BufferUsage.Storage -> BUFFER_USAGE_STORAGE
+      BufferUsage.Indirect -> BUFFER_USAGE_INDIRECT
     }
-
-// jextract skips them, as webgpu.h declares them as static const
-private const val SHADER_STAGE_VERTEX = 0x1L
-private const val SHADER_STAGE_FRAGMENT = 0x2L
 
 // jextract skips them, as webgpu.h declares them as static const
 private const val BUFFER_USAGE_COPY_DST = 0x8L
 private const val BUFFER_USAGE_UNIFORM = 0x40L
+private const val BUFFER_USAGE_STORAGE = 0x80L
+private const val BUFFER_USAGE_INDIRECT = 0x100L
 
 // jextract skips them, as webgpu.h declares them as static const
 private const val TEXTURE_USAGE_COPY_DST = 0x2L

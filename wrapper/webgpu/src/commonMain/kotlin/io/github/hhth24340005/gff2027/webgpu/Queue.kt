@@ -17,6 +17,16 @@ public expect value class Queue internal constructor(
   )
 
   /**
+   * Copies [data] into [buffer] from its start. Each element lies in the
+   * platform's byte order, which is little-endian on every supported platform,
+   * as WGSL reads it.
+   */
+  public fun writeBuffer(
+    buffer: Buffer,
+    data: IntArray,
+  )
+
+  /**
    * Copies [data] into the whole [texture], whose rows each start
    * [elementsPerRow] elements after the previous one, top row first. Each
    * element lies in the platform's byte order, which is little-endian on every

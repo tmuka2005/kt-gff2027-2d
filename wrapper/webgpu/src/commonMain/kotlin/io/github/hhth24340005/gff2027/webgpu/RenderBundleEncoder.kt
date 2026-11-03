@@ -42,6 +42,17 @@ public expect value class RenderBundleEncoder internal constructor(
   )
 
   /**
+   * Draws primitives with the current pipeline, reading `vertexCount`,
+   * `instanceCount`, `firstVertex` and `firstInstance` as four u32 from
+   * [buffer] at [offset] bytes when the GPU runs the draw. See the WebGPU spec:
+   * https://www.w3.org/TR/webgpu/#dom-gpurendercommandsmixin-drawindirect
+   */
+  public fun drawIndirect(
+    buffer: Buffer,
+    offset: Int = 0,
+  )
+
+  /**
    * Finishes recording. The encoder cannot record after this. The bundle keeps
    * the pipelines and bind groups it uses alive, so the scopes that created
    * them may exit before it.

@@ -23,6 +23,13 @@ public actual value class Queue internal actual constructor(
     writeBufferImpl(buffer, data)
   }
 
+  public actual fun writeBuffer(
+    buffer: Buffer,
+    data: IntArray,
+  ) {
+    writeBufferImpl(buffer, data)
+  }
+
   public actual fun writeTexture(
     texture: Texture,
     data: IntArray,
@@ -39,14 +46,27 @@ private fun Queue.writeBufferImpl(
   buffer: Buffer,
   data: FloatArray,
 ) {
+  writeBufferFrom(buffer, MemorySegment.ofArray(data))
+}
+
+private fun Queue.writeBufferImpl(
+  buffer: Buffer,
+  data: IntArray,
+) {
+  writeBufferFrom(buffer, MemorySegment.ofArray(data))
+}
+
+private fun Queue.writeBufferFrom(
+  buffer: Buffer,
+  data: MemorySegment,
+) {
   Arena.ofConfined().use { arena ->
-    val source = MemorySegment.ofArray(data)
     wgpuQueueWriteBuffer(
       handle,
       buffer.handle,
       0L,
-      arena.allocate(source.byteSize()).copyFrom(source),
-      source.byteSize(),
+      arena.allocate(data.byteSize()).copyFrom(data),
+      data.byteSize(),
     )
   }
 }
