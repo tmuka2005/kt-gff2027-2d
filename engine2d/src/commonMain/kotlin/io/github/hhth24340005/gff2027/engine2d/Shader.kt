@@ -144,7 +144,11 @@ public class Shader4<
 private fun bindingTypeOf(
   type: KClass<out ShaderResource>,
 ): BindingType =
-  if (type == Image::class) Texture else ReadOnlyStorage
+  if (type == Image::class) {
+    Texture
+  } else {
+    ReadOnlyStorage
+  }
 
 private fun <Vertex : WgslStruct, Instance : WgslStruct> newShader(
   wgsl: String,
