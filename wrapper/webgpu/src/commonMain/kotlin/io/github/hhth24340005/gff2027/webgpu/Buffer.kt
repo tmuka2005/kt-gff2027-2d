@@ -7,3 +7,12 @@ import kotlin.jvm.JvmInline
 public expect value class Buffer internal constructor(
   internal val handle: WebGpuNativeHandle,
 ) : BindingResource
+
+/** A way a [Buffer] may be used. */
+public enum class BufferUsage {
+  /** [Queue.writeBuffer] can fill it. */
+  CopyDst,
+
+  /** Shaders read it as uniforms, as `var<uniform>`. */
+  Uniform,
+}
