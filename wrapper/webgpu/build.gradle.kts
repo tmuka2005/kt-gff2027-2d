@@ -17,6 +17,7 @@ kotlin {
     jvmMain {
       dependencies {
         implementation(project(":native:webgpu"))
+        api(project(":wrapper:window"))
       }
     }
   }
