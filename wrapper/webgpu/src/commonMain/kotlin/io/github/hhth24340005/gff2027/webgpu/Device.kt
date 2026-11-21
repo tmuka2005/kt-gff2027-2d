@@ -17,4 +17,15 @@ public expect class Device {
     wgsl: String,
     label: String? = null,
   ): ShaderModule
+
+  /**
+   * Creates a pipeline that draws triangle lists with one sample per pixel.
+   */
+  context(scope: AutoCloseScope)
+  public fun createRenderPipeline(
+    vertex: VertexState,
+    fragment: FragmentState,
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    label: String? = null,
+  ): RenderPipeline
 }
