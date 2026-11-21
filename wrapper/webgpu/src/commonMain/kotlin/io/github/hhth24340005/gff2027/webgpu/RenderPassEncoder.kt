@@ -6,7 +6,27 @@ import kotlin.jvm.JvmInline
 @JvmInline
 public expect value class RenderPassEncoder internal constructor(
   internal val handle: WebGpuNativeHandle,
-)
+) {
+  /**
+   * Uses [pipeline] for the following draws. See the WebGPU spec:
+   * https://www.w3.org/TR/webgpu/#dom-gpurendercommandsmixin-setpipeline
+   */
+  public fun setPipeline(
+    pipeline: RenderPipeline,
+  )
+
+  /**
+   * Draws primitives with the current pipeline. See the WebGPU spec:
+   * https://www.w3.org/TR/webgpu/#dom-gpurendercommandsmixin-draw
+   */
+  public fun draw(
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    vertexCount: Int,
+    instanceCount: Int = 1,
+    firstVertex: Int = 0,
+    firstInstance: Int = 0,
+  )
+}
 
 // region internal
 
