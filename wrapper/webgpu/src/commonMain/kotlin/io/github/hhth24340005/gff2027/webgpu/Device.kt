@@ -1,5 +1,6 @@
 package io.github.hhth24340005.gff2027.webgpu
 
+import arrow.AutoCloseScope
 import kotlin.jvm.JvmInline
 
 /**
@@ -9,4 +10,15 @@ import kotlin.jvm.JvmInline
 @JvmInline
 public expect value class Device internal constructor(
   internal val handle: WebGpuNativeHandle,
-)
+) {
+  /**
+   * Compiles [wgsl], a shader written in [WGSL](https://www.w3.org/TR/WGSL/).
+   * The scope releases the module when it exits.
+   */
+  context(scope: AutoCloseScope)
+  public fun createShaderModule(
+    @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
+    wgsl: String,
+    label: String? = null,
+  ): ShaderModule
+}
