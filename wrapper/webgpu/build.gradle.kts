@@ -8,6 +8,12 @@ base.archivesName = "wrapper-webgpu"
 
 kotlin {
   sourceSets {
+    commonMain {
+      dependencies {
+        api(libs.arrow.fx.coroutines)
+      }
+    }
+
     jvmMain {
       dependencies {
         implementation(project(":native:webgpu"))
