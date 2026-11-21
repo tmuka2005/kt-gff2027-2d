@@ -7,12 +7,12 @@ package io.github.hhth24340005.gff2027.webgpu
 public value class FragmentState private constructor(
   public val module: ShaderModule,
   public val targets: List<ColorTargetState>,
-  public val entryPoint: String,
+  public val entryPoint: FragmentEntryPoint,
 ) {
   public constructor(
     module: ShaderModule,
     targets: List<ColorTargetState>,
     @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
-    entryPoint: String,
+    entryPoint: FragmentEntryPoint = Auto,
   ) : this(module, targets, entryPoint)
 }

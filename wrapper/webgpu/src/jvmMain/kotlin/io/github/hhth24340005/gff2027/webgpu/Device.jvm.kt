@@ -303,7 +303,11 @@ private fun MemorySegment.setVertexState(
   vertex: VertexState,
 ) {
   WGPUVertexState.module(this, vertex.module.handle)
-  WGPUVertexState.entryPoint(this).setStringView(arena, vertex.entryPoint)
+  val entryPoint = WGPUVertexState.entryPoint(this)
+  when (val point = vertex.entryPoint) {
+    VertexEntryPoint.Auto -> entryPoint.setNullStringView()
+    is VertexEntryPoint.Named -> entryPoint.setStringView(arena, point.name)
+  }
 }
 
 private fun MemorySegment.setSingleSample() {
@@ -318,7 +322,11 @@ private fun fragmentState(
 ): MemorySegment {
   val state = WGPUFragmentState.allocate(arena)
   WGPUFragmentState.module(state, fragment.module.handle)
-  WGPUFragmentState.entryPoint(state).setStringView(arena, fragment.entryPoint)
+  val entryPoint = WGPUFragmentState.entryPoint(state)
+  when (val point = fragment.entryPoint) {
+    FragmentEntryPoint.Auto -> entryPoint.setNullStringView()
+    is FragmentEntryPoint.Named -> entryPoint.setStringView(arena, point.name)
+  }
   WGPUFragmentState.targetCount(
     state,
     fragment.targets.size
