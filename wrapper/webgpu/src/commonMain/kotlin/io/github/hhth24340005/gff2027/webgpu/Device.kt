@@ -1,15 +1,15 @@
 package io.github.hhth24340005.gff2027.webgpu
 
 import arrow.AutoCloseScope
-import kotlin.jvm.JvmInline
 
 /**
  * A logical connection to an [Adapter] that creates GPU objects.
  * Obtained from [Adapter.requestDevice].
  */
-@JvmInline
 public expect value class Device internal constructor(
   internal val handle: WebGpuNativeHandle,
+  /** The queue that runs commands submitted to this device. */
+  public val queue: Queue,
 ) {
   /**
    * Compiles [wgsl], a shader written in [WGSL](https://www.w3.org/TR/WGSL/).

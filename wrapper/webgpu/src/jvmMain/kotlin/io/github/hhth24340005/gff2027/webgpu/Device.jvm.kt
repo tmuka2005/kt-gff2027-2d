@@ -19,9 +19,9 @@ import wgpu_native.webgpu_h.wgpuShaderModuleRelease
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
-@JvmInline
 public actual value class Device internal actual constructor(
   internal actual val handle: WebGpuNativeHandle,
+  public actual val queue: Queue,
 ) {
   context(scope: AutoCloseScope)
   public actual fun createShaderModule(

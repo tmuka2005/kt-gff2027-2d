@@ -9,7 +9,9 @@ import wgpu_native.webgpu_h.WGPUCallbackMode_AllowSpontaneous
 import wgpu_native.webgpu_h.WGPURequestDeviceStatus_CallbackCancelled
 import wgpu_native.webgpu_h.WGPURequestDeviceStatus_Success
 import wgpu_native.webgpu_h.wgpuAdapterRequestDevice
+import wgpu_native.webgpu_h.wgpuDeviceGetQueue
 import wgpu_native.webgpu_h.wgpuDeviceRelease
+import wgpu_native.webgpu_h.wgpuQueueRelease
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -44,10 +46,11 @@ private suspend fun Adapter.requestDeviceImpl(
         )
       }
     }
-  return Device(deviceHandle)
+  return Device(deviceHandle, Queue(wgpuDeviceGetQueue(deviceHandle)))
 }
 
 private fun Device.release() {
+  wgpuQueueRelease(queue.handle)
   wgpuDeviceRelease(handle)
 }
 
