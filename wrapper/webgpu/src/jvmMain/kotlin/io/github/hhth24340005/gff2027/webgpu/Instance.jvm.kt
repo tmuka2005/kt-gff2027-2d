@@ -34,6 +34,7 @@ import wgpu_native.webgpu_h.wgpuInstanceProcessEvents
 import wgpu_native.webgpu_h.wgpuInstanceRelease
 import wgpu_native.webgpu_h.wgpuInstanceRequestAdapter
 import wgpu_native.webgpu_h.wgpuSurfaceRelease
+import wgpu_native.webgpu_h.wgpuSurfaceUnconfigure
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.MemorySegment.NULL
@@ -249,6 +250,9 @@ private fun Window.source(
   }
 
 private fun Surface.release() {
+  if (configured) {
+    wgpuSurfaceUnconfigure(handle)
+  }
   wgpuSurfaceRelease(handle)
 }
 
