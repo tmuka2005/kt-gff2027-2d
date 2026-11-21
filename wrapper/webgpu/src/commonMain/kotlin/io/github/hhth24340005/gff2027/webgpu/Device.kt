@@ -7,6 +7,9 @@ import arrow.AutoCloseScope
  * Obtained from [Adapter.requestDevice].
  */
 public expect class Device {
+  /** The queue that runs commands submitted to this device. */
+  public val queue: Queue
+
   /**
    * Compiles [wgsl], a shader written in [WGSL](https://www.w3.org/TR/WGSL/).
    * The scope releases the module when it exits.

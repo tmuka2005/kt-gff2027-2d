@@ -16,6 +16,7 @@ import wgpu_native.webgpu_h.wgpuCommandEncoderRelease
 import wgpu_native.webgpu_h.wgpuDeviceCreateCommandEncoder
 import wgpu_native.webgpu_h.wgpuDeviceCreateRenderPipeline
 import wgpu_native.webgpu_h.wgpuDeviceCreateShaderModule
+import wgpu_native.webgpu_h.wgpuDeviceGetQueue
 import wgpu_native.webgpu_h.wgpuRenderPipelineRelease
 import wgpu_native.webgpu_h.wgpuShaderModuleRelease
 import java.lang.foreign.Arena
@@ -25,6 +26,8 @@ import java.lang.foreign.MemorySegment.NULL
 public actual class Device internal constructor(
   internal val handle: MemorySegment,
 ) {
+  public actual val queue: Queue = Queue(wgpuDeviceGetQueue(handle))
+
   context(scope: AutoCloseScope)
   public actual fun createShaderModule(
     @Suppress(names = ["UNUSED_PARAMETER"]) vararg namedOnly: NamedOnly,
