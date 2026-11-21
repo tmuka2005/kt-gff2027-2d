@@ -28,4 +28,11 @@ public expect class Device {
     @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
     label: String? = null,
   ): RenderPipeline
+
+  /**
+   * Creates an encoder that records GPU commands. The scope releases it when
+   * it exits.
+   */
+  context(scope: AutoCloseScope)
+  public fun createCommandEncoder(): CommandEncoder
 }

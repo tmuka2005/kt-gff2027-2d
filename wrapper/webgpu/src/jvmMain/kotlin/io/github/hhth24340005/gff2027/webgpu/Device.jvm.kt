@@ -12,12 +12,15 @@ import wgpu_native.WGPUShaderSourceWGSL
 import wgpu_native.WGPUVertexState
 import wgpu_native.webgpu_h.WGPUPrimitiveTopology_TriangleList
 import wgpu_native.webgpu_h.WGPUSType_ShaderSourceWGSL
+import wgpu_native.webgpu_h.wgpuCommandEncoderRelease
+import wgpu_native.webgpu_h.wgpuDeviceCreateCommandEncoder
 import wgpu_native.webgpu_h.wgpuDeviceCreateRenderPipeline
 import wgpu_native.webgpu_h.wgpuDeviceCreateShaderModule
 import wgpu_native.webgpu_h.wgpuRenderPipelineRelease
 import wgpu_native.webgpu_h.wgpuShaderModuleRelease
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
+import java.lang.foreign.MemorySegment.NULL
 
 public actual class Device internal constructor(
   internal val handle: MemorySegment,
@@ -43,6 +46,13 @@ public actual class Device internal constructor(
     scope.autoClose(
       acquire = { createRenderPipelineImpl(vertex, fragment, label) },
       release = { pipeline, _ -> pipeline.release() },
+    )
+
+  context(scope: AutoCloseScope)
+  public actual fun createCommandEncoder(): CommandEncoder =
+    scope.autoClose(
+      acquire = { createCommandEncoderImpl() },
+      release = { encoder, _ -> encoder.release() },
     )
 }
 
@@ -75,12 +85,19 @@ private fun Device.createRenderPipelineImpl(
     )
   }
 
+private fun Device.createCommandEncoderImpl(): CommandEncoder =
+  CommandEncoder(wgpuDeviceCreateCommandEncoder(handle, NULL))
+
 private fun ShaderModule.release() {
   wgpuShaderModuleRelease(handle)
 }
 
 private fun RenderPipeline.release() {
   wgpuRenderPipelineRelease(handle)
+}
+
+private fun CommandEncoder.release() {
+  wgpuCommandEncoderRelease(handle)
 }
 
 private fun shaderModuleDescriptor(
