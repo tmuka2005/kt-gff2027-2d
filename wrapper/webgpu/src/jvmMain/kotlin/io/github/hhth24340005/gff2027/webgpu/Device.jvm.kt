@@ -72,10 +72,11 @@ public actual class Device internal constructor(
   public actual fun createBuffer(
     @Suppress(names = ["UNUSED_PARAMETER"]) vararg namedOnly: NamedOnly,
     size: Int,
+    usage: Set<BufferUsage>,
     label: String?,
   ): Buffer =
     scope.autoClose(
-      acquire = { createBufferImpl(size, label) },
+      acquire = { createBufferImpl(size, usage, label) },
       release = { buffer, _ -> buffer.release() },
     )
 
@@ -154,13 +155,14 @@ private fun Device.createRenderPipelineImpl(
 
 private fun Device.createBufferImpl(
   size: Int,
+  usage: Set<BufferUsage>,
   label: String?,
 ): Buffer =
   Arena.ofConfined().use { arena ->
     Buffer(
       wgpuDeviceCreateBuffer(
         handle,
-        bufferDescriptor(arena, size, label),
+        bufferDescriptor(arena, size, usage, label),
       ),
     )
   }
@@ -338,6 +340,7 @@ private fun colorTargetStates(
 private fun bufferDescriptor(
   arena: Arena,
   size: Int,
+  usage: Set<BufferUsage>,
   label: String?,
 ): MemorySegment {
   val descriptor = WGPUBufferDescriptor.allocate(arena)
@@ -346,7 +349,7 @@ private fun bufferDescriptor(
   }
   WGPUBufferDescriptor.usage(
     descriptor,
-    BUFFER_USAGE_COPY_DST or BUFFER_USAGE_UNIFORM,
+    usage.fold(0L) { flags, each -> flags or each.native },
   )
   WGPUBufferDescriptor.size(descriptor, size.toLong())
   return descriptor
@@ -444,6 +447,13 @@ private fun MemorySegment.setWholeBuffer(
 
 // jextract skips it, as webgpu.h declares it as static const
 private const val COLOR_WRITE_MASK_ALL = 0xFL
+
+private val BufferUsage.native: Long
+  get() =
+    when (this) {
+      BufferUsage.CopyDst -> BUFFER_USAGE_COPY_DST
+      BufferUsage.Uniform -> BUFFER_USAGE_UNIFORM
+    }
 
 // jextract skips them, as webgpu.h declares them as static const
 private const val BUFFER_USAGE_COPY_DST = 0x8L

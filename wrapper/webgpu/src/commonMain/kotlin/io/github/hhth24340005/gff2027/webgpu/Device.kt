@@ -35,13 +35,14 @@ public expect class Device {
   ): RenderPipeline
 
   /**
-   * Creates a buffer of [size] bytes that shaders read as uniforms and
-   * [Queue.writeBuffer] can fill. The scope releases it when it exits.
+   * Creates a buffer of [size] bytes that may be used in the ways of [usage].
+   * The scope releases it when it exits.
    */
   context(scope: AutoCloseScope)
   public fun createBuffer(
     @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
     size: Int,
+    usage: Set<BufferUsage>,
     label: String? = null,
   ): Buffer
 
