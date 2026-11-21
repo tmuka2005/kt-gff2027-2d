@@ -1,5 +1,7 @@
 package io.github.hhth24340005.gff2027.webgpu
 
+import arrow.AutoCloseScope
+
 /**
  * A target that presents rendered images to a window. Obtained from
  * `Instance.createSurface`, which each platform defines for its windows.
@@ -23,4 +25,15 @@ public expect class Surface {
     @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
     size: Pair<Int, Int>,
   )
+
+  /**
+   * Returns the texture to draw the next frame to, or `null` when the frame
+   * should be skipped, for example while the window is hidden. Fails when the
+   * surface needs [configure] again.
+   */
+  context(scope: AutoCloseScope)
+  public fun getCurrentTexture(): Texture?
+
+  /** Shows the texture from [getCurrentTexture] on the window. */
+  public fun present()
 }
