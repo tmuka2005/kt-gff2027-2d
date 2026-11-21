@@ -32,4 +32,40 @@ public expect value class Device internal constructor(
     @Suppress("UNUSED_PARAMETER") vararg namedOnly: NamedOnly,
     label: String? = null,
   ): RenderPipeline
+
+  /**
+   * Records commands in [block], then runs them on the GPU. Runs nothing if
+   * [block] throws or returns from an enclosing function.
+   */
+  public inline fun submitCommands(
+    block: CommandEncoder.() -> Unit,
+  )
 }
+
+// region internal
+
+@PublishedApi
+internal inline fun Device.submitCommandsImpl(
+  block: CommandEncoder.() -> Unit,
+) {
+  val encoder = beginCommands()
+  try {
+    encoder.block()
+    finishAndSubmit(encoder)
+  } finally {
+    encoder.release()
+  }
+}
+
+@PublishedApi
+internal expect fun Device.beginCommands(): CommandEncoder
+
+@PublishedApi
+internal expect fun Device.finishAndSubmit(
+  encoder: CommandEncoder,
+)
+
+@PublishedApi
+internal expect fun CommandEncoder.release()
+
+// endregion

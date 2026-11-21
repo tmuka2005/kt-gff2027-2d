@@ -12,12 +12,19 @@ import wgpu_native.WGPUShaderSourceWGSL
 import wgpu_native.WGPUVertexState
 import wgpu_native.webgpu_h.WGPUPrimitiveTopology_TriangleList
 import wgpu_native.webgpu_h.WGPUSType_ShaderSourceWGSL
+import wgpu_native.webgpu_h.wgpuCommandBufferRelease
+import wgpu_native.webgpu_h.wgpuCommandEncoderFinish
+import wgpu_native.webgpu_h.wgpuCommandEncoderRelease
+import wgpu_native.webgpu_h.wgpuDeviceCreateCommandEncoder
 import wgpu_native.webgpu_h.wgpuDeviceCreateRenderPipeline
 import wgpu_native.webgpu_h.wgpuDeviceCreateShaderModule
+import wgpu_native.webgpu_h.wgpuQueueSubmit
 import wgpu_native.webgpu_h.wgpuRenderPipelineRelease
 import wgpu_native.webgpu_h.wgpuShaderModuleRelease
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
+import java.lang.foreign.MemorySegment.NULL
+import java.lang.foreign.ValueLayout.ADDRESS
 
 public actual value class Device internal actual constructor(
   internal actual val handle: WebGpuNativeHandle,
@@ -43,9 +50,42 @@ public actual value class Device internal actual constructor(
     createRenderPipelineImpl(vertex, fragment, label).also { pipeline ->
       scope.onClose { pipeline.release() }
     }
+
+  public actual inline fun submitCommands(
+    block: CommandEncoder.() -> Unit,
+  ) {
+    submitCommandsImpl(block)
+  }
 }
 
 // region internal
+
+@PublishedApi
+internal actual fun Device.beginCommands(): CommandEncoder =
+  CommandEncoder(wgpuDeviceCreateCommandEncoder(handle, NULL))
+
+@PublishedApi
+internal actual fun Device.finishAndSubmit(
+  encoder: CommandEncoder,
+) {
+  val commands = wgpuCommandEncoderFinish(encoder.handle, NULL)
+  try {
+    Arena.ofConfined().use { arena ->
+      wgpuQueueSubmit(
+        queue.handle,
+        1L,
+        arena.allocateFrom(ADDRESS, commands),
+      )
+    }
+  } finally {
+    wgpuCommandBufferRelease(commands)
+  }
+}
+
+@PublishedApi
+internal actual fun CommandEncoder.release() {
+  wgpuCommandEncoderRelease(handle)
+}
 
 private fun Device.createShaderModuleImpl(
   wgsl: String,
