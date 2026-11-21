@@ -5,12 +5,14 @@ import arrow.fx.coroutines.ResourceScope
 import io.github.hhth24340005.gff2027.webgpu.Color
 import io.github.hhth24340005.gff2027.webgpu.ColorTargetState
 import io.github.hhth24340005.gff2027.webgpu.Device
+import io.github.hhth24340005.gff2027.webgpu.FragmentEntryPoint
 import io.github.hhth24340005.gff2027.webgpu.FragmentState
 import io.github.hhth24340005.gff2027.webgpu.Instance
 import io.github.hhth24340005.gff2027.webgpu.LoadOp
 import io.github.hhth24340005.gff2027.webgpu.RenderPassColorAttachment
 import io.github.hhth24340005.gff2027.webgpu.RenderPipeline
 import io.github.hhth24340005.gff2027.webgpu.Surface
+import io.github.hhth24340005.gff2027.webgpu.VertexEntryPoint
 import io.github.hhth24340005.gff2027.webgpu.VertexState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -41,11 +43,11 @@ internal suspend fun drawTriangle(
   val module = device.createShaderModule(wgsl = SHADER)
   val pipeline =
     device.createRenderPipeline(
-      VertexState(module, entryPoint = "vs_main"),
+      VertexState(module, entryPoint = VertexEntryPoint("vs_main")),
       FragmentState(
         module,
         [ColorTargetState(format)],
-        entryPoint = "fs_main",
+        entryPoint = FragmentEntryPoint("fs_main"),
       ),
     )
 
@@ -61,8 +63,11 @@ private fun drawFrame(
   pipeline: RenderPipeline,
 ) {
   autoCloseScope {
-    val texture = surface.getCurrentTexture() ?: return
-    val view = texture.createView()
+    val current = surface.getCurrentTexture()
+    if (current !is Success) {
+      return
+    }
+    val view = current.texture.createView()
     val encoder = device.createCommandEncoder()
     encoder.renderPass(
       [RenderPassColorAttachment(view, LoadOp.Clear(BACKGROUND))],

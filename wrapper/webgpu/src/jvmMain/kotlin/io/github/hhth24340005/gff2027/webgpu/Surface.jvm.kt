@@ -44,10 +44,10 @@ public actual class Surface internal constructor(
   }
 
   context(scope: AutoCloseScope)
-  public actual fun getCurrentTexture(): Texture? =
+  public actual fun getCurrentTexture(): CurrentTexture =
     scope.autoClose(
       acquire = { getCurrentTextureImpl() },
-      release = { texture, _ -> texture?.release() },
+      release = { texture, _ -> texture.release() },
     )
 
   public actual fun present() {
@@ -90,7 +90,7 @@ private fun Surface.configureImpl(
   configured = true
 }
 
-private fun Surface.getCurrentTextureImpl(): Texture? =
+private fun Surface.getCurrentTextureImpl(): CurrentTexture =
   Arena.ofConfined().use { arena ->
     val surfaceTexture = WGPUSurfaceTexture.allocate(arena)
     wgpuSurfaceGetCurrentTexture(handle, surfaceTexture)
@@ -99,13 +99,15 @@ private fun Surface.getCurrentTextureImpl(): Texture? =
       WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal(),
       WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal(),
       -> {
-        Texture(texture)
+        CurrentTexture.Success(Texture(texture))
       }
 
-      WGPUSurfaceGetCurrentTextureStatus_Timeout(),
-      SURFACE_TEXTURE_STATUS_OCCLUDED,
-      -> {
-        null
+      WGPUSurfaceGetCurrentTextureStatus_Timeout() -> {
+        Timeout
+      }
+
+      SURFACE_TEXTURE_STATUS_OCCLUDED -> {
+        Occluded
       }
 
       WGPUSurfaceGetCurrentTextureStatus_Outdated(),
@@ -125,6 +127,12 @@ private fun Surface.presentImpl() {
   // Fails only when the surface is not configured
   check(wgpuSurfacePresent(handle) == WGPUStatus_Success()) {
     "wgpuSurfacePresent failed: the surface is not configured"
+  }
+}
+
+private fun CurrentTexture.release() {
+  if (this is Success) {
+    texture.release()
   }
 }
 

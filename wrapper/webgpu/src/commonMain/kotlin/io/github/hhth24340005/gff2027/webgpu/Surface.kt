@@ -27,13 +27,26 @@ public expect class Surface {
   )
 
   /**
-   * Returns the texture to draw the next frame to, or `null` when the frame
-   * should be skipped, for example while the window is hidden. Fails when the
-   * surface needs [configure] again.
+   * Returns the texture to draw the next frame to, or why there is none. Fails
+   * when the surface needs [configure] again.
    */
   context(scope: AutoCloseScope)
-  public fun getCurrentTexture(): Texture?
+  public fun getCurrentTexture(): CurrentTexture
 
   /** Shows the texture from [getCurrentTexture] on the window. */
   public fun present()
+}
+
+public sealed interface CurrentTexture {
+  /** [texture] receives the next frame. */
+  public class Success(public val texture: Texture) : CurrentTexture
+
+  /**
+   * The window is hidden. Trying again returns immediately until it shows,
+   * instead of waiting for the display.
+   */
+  public data object Occluded : CurrentTexture
+
+  /** No texture became free in time. Trying again may succeed. */
+  public data object Timeout : CurrentTexture
 }
